@@ -98,6 +98,20 @@ export interface LoginBody {
   firebase_token: string;
 }
 
+// POST /conductor/crear — registro. El backend deriva el firebase_uid del token.
+export interface CrearConductorBody {
+  firebase_token: string;
+  nombre: string;
+  email?: string;
+  telefono?: string;
+}
+
+export interface CrearConductorResponse {
+  conductor: Conductor;
+  suscripcion: Suscripcion | null;
+  suscripcion_activa: boolean;
+}
+
 export interface UpdatePerfilBody {
   nombre?: string;
   foto_url?: string;

@@ -6,6 +6,8 @@ import { useAuthStore } from '../store/auth.store';
 import type {
   RegistroBody,
   LoginBody,
+  CrearConductorBody,
+  CrearConductorResponse,
   UpdatePerfilBody,
   UpdateUmbralesBody,
   AnalisisBody,
@@ -28,7 +30,9 @@ import type {
 
 // Android emulator no puede acceder a localhost del host — usa 10.0.2.2
 const getBaseUrl = (): string => {
-  if (process.env.EXPO_PUBLIC_API_URL) return process.env.EXPO_PUBLIC_API_URL;
+  // EXPO_PUBLIC_API_BASE_URL es el nombre canónico; se mantiene el fallback al antiguo.
+  const fromEnv = process.env.EXPO_PUBLIC_API_BASE_URL ?? process.env.EXPO_PUBLIC_API_URL;
+  if (fromEnv) return fromEnv;
   return Platform.OS === 'android'
     ? 'http://10.0.2.2:3000/api/v1'
     : 'http://localhost:3000/api/v1';
@@ -127,6 +131,10 @@ export const authClient = {
 // ── conductorClient ───────────────────────────────────────────────────────────
 
 export const conductorClient = {
+  // Registro de un conductor nuevo (público). El backend deriva el uid del token.
+  crear: (body: CrearConductorBody) =>
+    apiClient.post<CrearConductorResponse>('/conductor/crear', body),
+
   // El backend devuelve el Conductor directamente (no envuelto en { conductor })
   getPerfil: () =>
     apiClient.get<Conductor>('/conductor/perfil'),

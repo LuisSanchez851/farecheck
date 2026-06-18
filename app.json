@@ -12,6 +12,7 @@
     },
     "android": {
       "package": "com.farecheck.app",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -24,7 +25,22 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "./plugins/withFareCheckOcr"
-    ]
+      "./plugins/withFareCheckOcr",
+      "@react-native-firebase/app",
+      "@react-native-firebase/auth",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static"
+          }
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "3389ab7d-ad54-4d35-afb5-c362a1ef3a5f"
+      }
+    }
   }
 }

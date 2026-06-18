@@ -29,41 +29,47 @@ interface LoginNavigation {
 
 export default function LoginScreen({ navigation }: { navigation: LoginNavigation }) {
   const [phoneNumber, setPhoneNumber] = useState('');
-  const { setUser, setLoading, isLoading } = useAuthStore();
+  const { setLoading, isLoading } = useAuthStore();
+  const needsRegistration = useAuthStore((s) => s.needsRegistration);
 
-  // ── Google Sign-In DESACTIVADO — solo teléfono por ahora ──────────────────────
-  // Para reactivarlo: descomentar el hook, el useEffect y handleGoogleSignIn,
-  // y restaurar el botón "Continuar con Google" en el JSX.
-  // const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
-  //   androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
-  //   iosClientId:     process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-  // });
-  //
-  // useEffect(() => {
-  //   if (response?.type !== 'success') {
-  //     if (response?.type === 'error' || response?.type === 'dismiss') {
-  //       setLoading(false);
-  //     }
-  //     return;
-  //   }
-  //   const idToken = response.params.id_token;
-  //   if (!idToken) {
-  //     setLoading(false);
-  //     Alert.alert('Error', 'No se recibió el token de Google. Intenta de nuevo.');
-  //     return;
-  //   }
-  //   signInWithGoogle(idToken)
-  //     .then((user) => setUser(user))
-  //     .catch(() => {
-  //       setLoading(false);
-  //       Alert.alert('Error de autenticación', 'No se pudo verificar tu cuenta de Google.');
-  //     });
-  // }, [response]);
-  //
-  // const handleGoogleSignIn = async () => {
-  //   setLoading(true);
-  //   promptAsync();
-  // };
+  // ── Google Sign-In ────────────────────────────────────────────────────────────
+  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
+    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_OAUTH_ANDROID_CLIENT_ID,
+    iosClientId:     process.env.EXPO_PUBLIC_GOOGLE_OAUTH_IOS_CLIENT_ID,
+    webClientId:     process.env.EXPO_PUBLIC_GOOGLE_OAUTH_WEB_CLIENT_ID,
+  });
+
+  useEffect(() => {
+    if (response?.type !== 'success') {
+      if (response?.type === 'error' || response?.type === 'dismiss') {
+        setLoading(false);
+      }
+      return;
+    }
+    const idToken = response.params.id_token;
+    if (!idToken) {
+      setLoading(false);
+      Alert.alert('Error', 'No se recibió el token de Google. Intenta de nuevo.');
+      return;
+    }
+    // signInWithGoogle crea la sesión Firebase; AppNavigator (onAuthStateChanged)
+    // consulta el backend y decide AppTabs (existente) o RegisterScreen (nuevo).
+    signInWithGoogle(idToken)
+      .catch(() => {
+        setLoading(false);
+        Alert.alert('Error de autenticación', 'No se pudo verificar tu cuenta de Google.');
+      });
+  }, [response, setLoading]);
+
+  const handleGoogleSignIn = () => {
+    setLoading(true);
+    promptAsync();
+  };
+
+  // Usuario autenticado en Firebase pero sin conductor en BD → a registrarse.
+  useEffect(() => {
+    if (needsRegistration) navigation.navigate('Register');
+  }, [needsRegistration, navigation]);
 
   const handlePhoneContinue = () => {
     const digits = phoneNumber.replace(/\D/g, '');
@@ -136,7 +142,39 @@ export default function LoginScreen({ navigation }: { navigation: LoginNavigatio
           La inteligencia para tus servicios de transporte.
         </Text>
 
-        {/* Botón Google y divisor removidos — login solo por teléfono */}
+        {/* ── Botón Google ─────────────────────────────────────── */}
+        <TouchableOpacity
+          onPress={handleGoogleSignIn}
+          disabled={!request || isLoading}
+          activeOpacity={0.8}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: spacing.sm,
+            paddingVertical: 14,
+            borderRadius: radius.md,
+            borderWidth: 1.5,
+            borderColor: colors.border,
+            backgroundColor: colors.white,
+            marginBottom: spacing.lg,
+            opacity: !request || isLoading ? 0.5 : 1,
+          }}
+        >
+          <AntDesign name="google" size={18} color={colors.navy} />
+          <Text style={{ fontSize: 15, fontWeight: '600', color: colors.navy }}>
+            Continuar con Google
+          </Text>
+        </TouchableOpacity>
+
+        {/* ── Divisor ──────────────────────────────────────────── */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.lg }}>
+          <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
+          <Text style={{ marginHorizontal: spacing.md, fontSize: typography.caption.fontSize, color: colors.textMuted }}>
+            o con tu teléfono
+          </Text>
+          <View style={{ flex: 1, height: 1, backgroundColor: colors.border }} />
+        </View>
 
         {/* ── Campo teléfono ────────────────────────────────────── */}
         <View style={{ marginBottom: spacing.md }}>

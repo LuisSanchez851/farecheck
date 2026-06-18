@@ -4,47 +4,37 @@ import {
   signInWithPhoneNumber,
   signOut as firebaseSignOut,
   onAuthStateChanged,
-  ConfirmationResult,
-  ApplicationVerifier,
-  User,
-} from 'firebase/auth';
+  FirebaseAuthTypes,
+} from '@react-native-firebase/auth';
 import { auth } from './firebase';
 
 /**
- * Intercambia el idToken de Google (obtenido con expo-auth-session)
- * por una sesión Firebase. Llamar desde el componente que maneja
- * el hook useIdTokenAuthRequest.
+ * Intercambia el idToken de Google (obtenido con expo-auth-session) por una sesión
+ * Firebase nativa (@react-native-firebase).
  */
-export async function signInWithGoogle(idToken: string): Promise<User> {
+export async function signInWithGoogle(idToken: string): Promise<FirebaseAuthTypes.User> {
   const credential = GoogleAuthProvider.credential(idToken);
   const { user } = await signInWithCredential(auth, credential);
   return user;
 }
 
 /**
- * Inicia el flujo de autenticación por teléfono.
- * @param phoneNumber - Formato E.164: '+573001234567'
- * @param appVerifier - RecaptchaVerifier obtenido en el componente de login.
- *                      En Sprint 3 (bare workflow) esto será manejado
- *                      automáticamente por @react-native-firebase sin reCAPTCHA.
- * @returns ConfirmationResult — guardar en auth.store para el paso verifyOTP
+ * Inicia el flujo de autenticación por teléfono. Con @react-native-firebase el SMS se
+ * envía SIN reCAPTCHA (verificación nativa de la app vía Play Integrity / APNs).
+ * @param phoneNumber Formato E.164: '+573001234567'
+ * @returns ConfirmationResult — guardar en auth.store para el paso verifyOTP.
  */
 export async function signInWithPhone(
   phoneNumber: string,
-  appVerifier: ApplicationVerifier,
-): Promise<ConfirmationResult> {
-  return signInWithPhoneNumber(auth, phoneNumber, appVerifier);
+): Promise<FirebaseAuthTypes.ConfirmationResult> {
+  return signInWithPhoneNumber(auth, phoneNumber);
 }
 
-/**
- * Confirma el código OTP recibido por SMS.
- * @param confirmationResult - El resultado guardado de signInWithPhone
- * @param code - Código de 6 dígitos que ingresó el usuario
- */
+/** Confirma el código OTP recibido por SMS. */
 export async function verifyOTP(
-  confirmationResult: ConfirmationResult,
+  confirmationResult: FirebaseAuthTypes.ConfirmationResult,
   code: string,
-): Promise<User> {
+): Promise<FirebaseAuthTypes.User> {
   const result = await confirmationResult.confirm(code);
   if (!result?.user) throw new Error('Verificación OTP fallida');
   return result.user;
@@ -55,20 +45,17 @@ export async function signOut(): Promise<void> {
 }
 
 /**
- * Suscribe al estado de autenticación de Firebase.
- * Llamar en el componente raíz (App.tsx) para mantener el store sincronizado.
- * @returns Función para desuscribirse (llamar en cleanup del useEffect)
+ * Suscribe al estado de autenticación de Firebase. Llamar en el componente raíz
+ * (AppNavigator) para mantener el store sincronizado.
+ * @returns Función para desuscribirse.
  */
 export function subscribeToAuthChanges(
-  onUserChange: (user: User | null) => void,
+  onUserChange: (user: FirebaseAuthTypes.User | null) => void,
 ): () => void {
   return onAuthStateChanged(auth, onUserChange);
 }
 
-/**
- * Obtiene el idToken JWT del usuario actual para enviarlo al backend.
- * El token expira cada hora — Firebase lo refresca automáticamente.
- */
+/** Obtiene el idToken JWT del usuario actual para enviarlo al backend. */
 export async function getIdToken(): Promise<string | null> {
   const user = auth.currentUser;
   if (!user) return null;

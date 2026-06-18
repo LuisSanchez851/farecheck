@@ -11,7 +11,7 @@ import {
   Alert,
 } from 'react-native';
 import { auth } from '../../services/firebase';
-import { authClient, ApiError } from '../../services/api.client';
+import { conductorClient, ApiError } from '../../services/api.client';
 import { useAuthStore } from '../../store/auth.store';
 import { colors } from '../../constants/colors';
 import { typography } from '../../constants/typography';
@@ -27,7 +27,7 @@ export default function RegisterScreen({ navigation }: RegisterScreenProps) {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const { setConductor } = useAuthStore();
+  const { setConductor, setSuscripcion } = useAuthStore();
 
   const emailError = email.length > 0 && !EMAIL_RE.test(email);
   const isNombreValid = nombre.trim().length >= 2;
@@ -38,24 +38,26 @@ export default function RegisterScreen({ navigation }: RegisterScreenProps) {
 
     setLoading(true);
     try {
-      const user = auth.currentUser;
-      if (!user) {
-        Alert.alert('Sesión expirada', 'Por favor vuelve a iniciar sesión.');
+      // Guard: solo se puede registrar tras autenticarse en Firebase (Google/teléfono).
+      // Si se llegó aquí sin sesión (p.ej. por el enlace "Registrarse"), volver a Login.
+      const firebase_token = await auth.currentUser?.getIdToken();
+      if (!firebase_token) {
+        Alert.alert('No autenticado', 'Inicia sesión con Google o tu teléfono antes de registrarte.');
+        navigation.goBack();
         return;
       }
 
-      const firebase_token = await user.getIdToken();
-
-      const body: Parameters<typeof authClient.registro>[0] = {
+      const body: Parameters<typeof conductorClient.crear>[0] = {
         firebase_token,
         nombre: nombre.trim(),
       };
       if (email.trim()) body.email = email.trim().toLowerCase();
       if (telefono.trim()) body.telefono = `+57${telefono.replace(/\D/g, '')}`;
 
-      const response = await authClient.registro(body);
-      setConductor(response.data.conductor);
-      // AppNavigator reacciona a isAuthenticated=true y navega a AppTabs
+      const { data } = await conductorClient.crear(body);
+      setSuscripcion(data.suscripcion);
+      setConductor(data.conductor);
+      // setConductor activa isAuthenticated=true → RootNavigator navega a AppTabs
     } catch (err) {
       let message = 'Ocurrió un error inesperado. Intenta de nuevo.';
       if (err instanceof ApiError) {

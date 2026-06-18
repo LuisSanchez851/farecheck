@@ -121,8 +121,13 @@ function AppTabsNavigator() {
 // ── Auth Stack ────────────────────────────────────────────────────────────────
 
 function AuthStackNavigator() {
+  // Si Firebase autenticó pero el conductor no existe en BD, arrancamos en Register.
+  const needsRegistration = useAuthStore((s) => s.needsRegistration);
   return (
-    <AuthStack.Navigator screenOptions={{ headerShown: false }}>
+    <AuthStack.Navigator
+      initialRouteName={needsRegistration ? 'Register' : 'Login'}
+      screenOptions={{ headerShown: false }}
+    >
       <AuthStack.Screen name="Login"    component={LoginScreen} />
       <AuthStack.Screen name="Register" component={RegisterScreen} />
       <AuthStack.Screen name="OTP"      component={OTPScreen} />
@@ -133,12 +138,12 @@ function AuthStackNavigator() {
 // ── Root ──────────────────────────────────────────────────────────────────────
 
 export default function RootNavigator() {
-  // TEMPORAL: bypass auth para desarrollo
-  // En producción, descomenta la lógica de auth de abajo
-  return <AppTabsNavigator />;
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const onboardingComplete = useAppStore((s) => s.onboardingComplete);
 
-  // const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  // const onboardingComplete = useAppStore((s) => s.onboardingComplete);
-  // if (!onboardingComplete) return <OnboardingScreen />;
-  // return isAuthenticated ? <AppTabsNavigator /> : <AuthStackNavigator />;
+  // 1) Onboarding hasta que el usuario lo complete (persistido en AsyncStorage).
+  if (!onboardingComplete) return <OnboardingScreen />;
+  // 2) Sin conductor confirmado por el backend → flujo de auth (Login/OTP/Register).
+  // 3) Con conductor → la app.
+  return isAuthenticated ? <AppTabsNavigator /> : <AuthStackNavigator />;
 }

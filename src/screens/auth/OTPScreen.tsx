@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
   StyleSheet,
   Alert,
 } from 'react-native';
@@ -14,31 +15,58 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '../../constants/colors';
 import { typography } from '../../constants/typography';
 import { spacing, radius } from '../../constants/spacing';
+import { signInWithPhone, verifyOTP } from '../../services/auth.service';
+import { useAuthStore } from '../../store/auth.store';
 import type { OTPScreenProps } from '../../types/navigation';
 
-// NOTA: Phone auth migrado a @react-native-firebase en S3.
-// Se removió expo-firebase-recaptcha (verificador reCAPTCHA del Firebase JS SDK)
-// porque estaba deprecado desde SDK 48 y rompía los builds nativos (duplicaba
-// expo-constants). La pantalla se mantiene como placeholder; el envío y la
-// verificación reales de SMS se reconectan con @react-native-firebase (nativo,
-// sin reCAPTCHA) en Sprint 3. Lógica de referencia en services/auth.service.ts
-// (signInWithPhone / verifyOTP).
-
-const PENDIENTE_S3 = 'El flujo SMS/OTP se migra a @react-native-firebase en S3 (sin reCAPTCHA).';
+// Phone auth con @react-native-firebase: el SMS se envía SIN reCAPTCHA (verificación
+// nativa). El flujo: signInWithPhone → ConfirmationResult (en el store) → confirm(code).
+// Tras verificar, AppNavigator (onAuthStateChanged) detecta la sesión: si el conductor
+// ya existe va a AppTabs; si es nuevo, marca needsRegistration y aquí navegamos a Register.
 
 export default function OTPScreen({ route, navigation }: OTPScreenProps) {
   const { phoneNumber } = route.params;
   const [code, setCode] = useState('');
   const [codigoEnviado, setCodigoEnviado] = useState(false);
+  const [enviando, setEnviando] = useState(false);
+  const [verificando, setVerificando] = useState(false);
 
-  const enviarCodigo = () => {
-    Alert.alert('Disponible en S3', PENDIENTE_S3);
-    setCodigoEnviado(true); // muestra el campo de código para conservar la pantalla completa
+  const { pendingConfirmation, setPendingConfirmation } = useAuthStore();
+
+  const enviarCodigo = async () => {
+    setEnviando(true);
+    try {
+      const confirmation = await signInWithPhone(phoneNumber);
+      setPendingConfirmation(confirmation);
+      setCodigoEnviado(true);
+    } catch (e) {
+      // Surface el error real de Firebase para diagnóstico (code + message):
+      // p.ej. auth/invalid-phone-number, auth/app-not-authorized (falta SHA-1),
+      // auth/missing-client-identifier, o "native module" si se corre en Expo Go.
+      const err = e as { code?: string; message?: string };
+      console.warn('[OTP] signInWithPhone falló →', err?.code, err?.message);
+      Alert.alert(
+        'No se pudo enviar el código',
+        err?.code ? `${err.code}\n${err.message ?? ''}` : 'Verifica el número e inténtalo de nuevo.',
+      );
+    } finally {
+      setEnviando(false);
+    }
   };
 
-  const verificarCodigo = () => {
-    // S3 (@react-native-firebase): await confirmation.confirm(code) → navega a Register
-    Alert.alert('Disponible en S3', PENDIENTE_S3);
+  const verificarCodigo = async () => {
+    if (!pendingConfirmation || code.length !== 6) return;
+    setVerificando(true);
+    try {
+      await verifyOTP(pendingConfirmation, code);
+      setPendingConfirmation(null);
+      // Usuario nuevo → RegisterScreen. Usuario existente → AppNavigator cambia a AppTabs.
+      navigation.navigate('Register');
+    } catch {
+      Alert.alert('Código incorrecto', 'El código ingresado no es válido. Inténtalo de nuevo.');
+    } finally {
+      setVerificando(false);
+    }
   };
 
   return (
@@ -55,14 +83,18 @@ export default function OTPScreen({ route, navigation }: OTPScreenProps) {
           </Text>
           <Text style={styles.numero}>{phoneNumber}</Text>
 
-          {/* Aviso de estado temporal */}
-          <View style={styles.aviso}>
-            <Text style={styles.avisoTexto}>{PENDIENTE_S3}</Text>
-          </View>
-
           {!codigoEnviado ? (
-            <TouchableOpacity style={styles.boton} onPress={enviarCodigo} activeOpacity={0.85}>
-              <Text style={styles.botonTexto}>Enviar código OTP</Text>
+            <TouchableOpacity
+              style={[styles.boton, { opacity: enviando ? 0.6 : 1 }]}
+              onPress={enviarCodigo}
+              disabled={enviando}
+              activeOpacity={0.85}
+            >
+              {enviando ? (
+                <ActivityIndicator size="small" color={colors.white} />
+              ) : (
+                <Text style={styles.botonTexto}>Enviar código OTP</Text>
+              )}
             </TouchableOpacity>
           ) : (
             <>
@@ -78,12 +110,25 @@ export default function OTPScreen({ route, navigation }: OTPScreenProps) {
                 textContentType="oneTimeCode"
               />
               <TouchableOpacity
-                style={[styles.boton, { opacity: code.length === 6 ? 1 : 0.45 }]}
+                style={[styles.boton, { opacity: code.length === 6 && !verificando ? 1 : 0.45 }]}
                 onPress={verificarCodigo}
-                disabled={code.length !== 6}
+                disabled={code.length !== 6 || verificando}
                 activeOpacity={0.85}
               >
-                <Text style={styles.botonTexto}>Verificar código</Text>
+                {verificando ? (
+                  <ActivityIndicator size="small" color={colors.white} />
+                ) : (
+                  <Text style={styles.botonTexto}>Verificar código</Text>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={enviarCodigo}
+                disabled={enviando}
+                style={styles.reenviar}
+                activeOpacity={0.6}
+              >
+                <Text style={styles.reenviarTexto}>Reenviar código</Text>
               </TouchableOpacity>
             </>
           )}
@@ -105,16 +150,11 @@ const styles = StyleSheet.create({
   subtitulo: { fontSize: typography.body.fontSize, color: colors.textSecondary, lineHeight: 22 },
   numero: { fontSize: typography.h2.fontSize, fontWeight: '700', color: colors.primary, marginTop: spacing.xs, marginBottom: spacing.xl },
 
-  aviso: {
-    backgroundColor: colors.amberBg,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    marginBottom: spacing.xl,
-  },
-  avisoTexto: { fontSize: typography.caption.fontSize, color: colors.navy, lineHeight: 18 },
-
   boton: { paddingVertical: 16, borderRadius: radius.md, backgroundColor: colors.primary, alignItems: 'center', marginTop: spacing.sm },
   botonTexto: { fontSize: typography.h2.fontSize, fontWeight: typography.h2.fontWeight, color: colors.white },
+
+  reenviar: { marginTop: spacing.lg, alignItems: 'center' },
+  reenviarTexto: { fontSize: typography.body.fontSize, color: colors.primary, fontWeight: '500' },
 
   codigoInput: {
     borderWidth: 1.5,
