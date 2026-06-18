@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Configuración del AccessibilityService de FareCheck.
+
+  - typeWindowStateChanged + typeWindowContentChanged: reaccionamos cuando cambia la
+    pantalla o su contenido (aparece una oferta).
+  - feedbackGeneric + flagReportViewIds: solo lectura, sin retroalimentación al usuario.
+  - canRetrieveWindowContent="true": indispensable para leer el árbol de nodos.
+  - packageNames: limita la escucha a las apps de transporte (rendimiento + privacidad).
+    Debe coincidir con TARGET_PACKAGES en OfferReaderAccessibilityService.java.
+  - notificationTimeout: agrupa eventos para no saturar (el debounce fino está en código).
+-->
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:accessibilityEventTypes="typeWindowStateChanged|typeWindowContentChanged"
+    android:accessibilityFeedbackType="feedbackGeneric"
+    android:accessibilityFlags="flagReportViewIds|flagRetrieveInteractiveWindows"
+    android:canRetrieveWindowContent="true"
+    android:notificationTimeout="300"
+    android:packageNames="com.didiglobal.passenger,com.ubercab.driver,com.picap.android,ru.yandex.taximeter,sinet.startup.inDriver,com.taxislibres.driver"
+    android:description="@string/farecheck_accessibility_description" />

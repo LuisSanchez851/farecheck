@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Chip flotante del semáforo (S3-03). El color del punto y del título se ajustan en
+  tiempo de ejecución según el semáforo (ver FloatingOverlayService.pintar()).
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/overlay_background"
+    android:padding="14dp"
+    android:minWidth="240dp"
+    android:elevation="8dp">
+
+    <!-- Header: punto de color + título (palabra del semáforo). Arrastrable. -->
+    <LinearLayout
+        android:id="@+id/overlay_header"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <View
+            android:id="@+id/overlay_dot"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:background="@drawable/overlay_dot" />
+
+        <TextView
+            android:id="@+id/overlay_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="—"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:textColor="#1A2B5E" />
+    </LinearLayout>
+
+    <!-- Detalle: mensaje + botones. Se oculta al minimizar (tap en el punto). -->
+    <LinearLayout
+        android:id="@+id/overlay_detail"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginTop="8dp">
+
+        <TextView
+            android:id="@+id/overlay_mensaje"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textSize="15sp"
+            android:textColor="#1A2B5E" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="10dp">
+
+            <Button
+                android:id="@+id/btn_aceptar"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Aceptar"
+                android:textColor="#FFFFFF"
+                android:textAllCaps="false"
+                android:background="@drawable/overlay_pill"
+                android:backgroundTint="#1DB87A" />
+
+            <Button
+                android:id="@+id/btn_rechazar"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:text="Rechazar"
+                android:textColor="#FFFFFF"
+                android:textAllCaps="false"
+                android:background="@drawable/overlay_pill"
+                android:backgroundTint="#E53935" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>
