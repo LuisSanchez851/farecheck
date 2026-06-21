@@ -61,7 +61,10 @@ export default function RegisterScreen({ navigation }: RegisterScreenProps) {
     } catch (err) {
       let message = 'Ocurrió un error inesperado. Intenta de nuevo.';
       if (err instanceof ApiError) {
+        if (__DEV__) console.warn('[Register] ApiError → status:', err.status, '| code:', err.code, '| message:', err.message);
         if (err.status === 400 || err.status === 409) message = err.message;
+      } else if (__DEV__) {
+        console.warn('[Register] error NO-API (red/Firebase?) →', (err as Error)?.message);
       }
       Alert.alert('Error al registrarse', message);
     } finally {

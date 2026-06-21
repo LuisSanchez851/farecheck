@@ -10,17 +10,12 @@ import {
   Platform,
   Alert,
 } from 'react-native';
-import * as Google from 'expo-auth-session/providers/google';
-import * as WebBrowser from 'expo-web-browser';
 import { AntDesign } from '@expo/vector-icons';
 import { colors } from '../../constants/colors';
 import { typography } from '../../constants/typography';
 import { spacing, radius } from '../../constants/spacing';
 import { signInWithGoogle } from '../../services/auth.service';
 import { useAuthStore } from '../../store/auth.store';
-
-// Necesario para que expo-auth-session cierre el browser al volver a la app
-WebBrowser.maybeCompleteAuthSession();
 
 // Tipado mínimo — se expande cuando se conecte react-navigation en S1-06
 interface LoginNavigation {
@@ -32,38 +27,25 @@ export default function LoginScreen({ navigation }: { navigation: LoginNavigatio
   const { setLoading, isLoading } = useAuthStore();
   const needsRegistration = useAuthStore((s) => s.needsRegistration);
 
-  // ── Google Sign-In ────────────────────────────────────────────────────────────
-  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
-    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_OAUTH_ANDROID_CLIENT_ID,
-    iosClientId:     process.env.EXPO_PUBLIC_GOOGLE_OAUTH_IOS_CLIENT_ID,
-    webClientId:     process.env.EXPO_PUBLIC_GOOGLE_OAUTH_WEB_CLIENT_ID,
-  });
-
-  useEffect(() => {
-    if (response?.type !== 'success') {
-      if (response?.type === 'error' || response?.type === 'dismiss') {
-        setLoading(false);
-      }
-      return;
-    }
-    const idToken = response.params.id_token;
-    if (!idToken) {
-      setLoading(false);
-      Alert.alert('Error', 'No se recibió el token de Google. Intenta de nuevo.');
-      return;
-    }
-    // signInWithGoogle crea la sesión Firebase; AppNavigator (onAuthStateChanged)
-    // consulta el backend y decide AppTabs (existente) o RegisterScreen (nuevo).
-    signInWithGoogle(idToken)
-      .catch(() => {
-        setLoading(false);
-        Alert.alert('Error de autenticación', 'No se pudo verificar tu cuenta de Google.');
-      });
-  }, [response, setLoading]);
-
-  const handleGoogleSignIn = () => {
+  // ── Google Sign-In (nativo) ─────────────────────────────────────────────────
+  const handleGoogleSignIn = async () => {
     setLoading(true);
-    promptAsync();
+    try {
+      await signInWithGoogle();
+      // En éxito, onAuthStateChanged (AppNavigator) decide AppTabs o RegisterScreen
+      // y desmonta esta pantalla; no reseteamos isLoading aquí (igual que antes).
+    } catch (e) {
+      const err = e as { code?: string; message?: string };
+      setLoading(false);
+      if (err?.message === 'google-sign-in-cancelled') return; // sin alerta
+      // Loguea el code/message exacto (p.ej. DEVELOPER_ERROR si webClientId/SHA no
+      // coinciden, o auth/account-exists-with-different-credential de Firebase).
+      if (__DEV__) console.warn('[Login] signInWithGoogle (nativo) falló →', err?.code, err?.message);
+      Alert.alert(
+        'Error de autenticación',
+        err?.code ? `${err.code}\n${err.message ?? ''}` : 'No se pudo verificar tu cuenta de Google.',
+      );
+    }
   };
 
   // Usuario autenticado en Firebase pero sin conductor en BD → a registrarse.
@@ -145,7 +127,7 @@ export default function LoginScreen({ navigation }: { navigation: LoginNavigatio
         {/* ── Botón Google ─────────────────────────────────────── */}
         <TouchableOpacity
           onPress={handleGoogleSignIn}
-          disabled={!request || isLoading}
+          disabled={isLoading}
           activeOpacity={0.8}
           style={{
             flexDirection: 'row',
@@ -158,7 +140,7 @@ export default function LoginScreen({ navigation }: { navigation: LoginNavigatio
             borderColor: colors.border,
             backgroundColor: colors.white,
             marginBottom: spacing.lg,
-            opacity: !request || isLoading ? 0.5 : 1,
+            opacity: isLoading ? 0.5 : 1,
           }}
         >
           <AntDesign name="google" size={18} color={colors.navy} />

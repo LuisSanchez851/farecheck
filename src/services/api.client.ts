@@ -93,6 +93,14 @@ apiClient.interceptors.response.use(
     const message: string = error.response?.data?.message ?? error.message;
     const config = error.config as RetryableConfig | undefined;
 
+    if (__DEV__) {
+      console.warn(
+        '[api] error →',
+        (config?.method ?? '?').toUpperCase(), config?.url,
+        '| status:', status, '| code:', code, '| message:', message,
+      );
+    }
+
     // 401 token_expirado — refrescar y reintentar UNA vez
     if (status === 401 && code === 'token_expirado' && config && !config._retry) {
       config._retry = true;

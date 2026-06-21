@@ -6,13 +6,34 @@ import {
   onAuthStateChanged,
   FirebaseAuthTypes,
 } from '@react-native-firebase/auth';
+import {
+  GoogleSignin,
+  isSuccessResponse,
+} from '@react-native-google-signin/google-signin';
 import { auth } from './firebase';
 
+// Configura el SDK nativo de Google una sola vez al importar el módulo.
+// webClientId = OAuth client tipo "Web application" (EXPO_PUBLIC_GOOGLE_OAUTH_WEB_CLIENT_ID).
+// El client Android lo resuelve el SDK nativo desde google-services.json — ya NO se
+// usa EXPO_PUBLIC_GOOGLE_OAUTH_ANDROID_CLIENT_ID en JS.
+const WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_OAUTH_WEB_CLIENT_ID;
+
+GoogleSignin.configure({
+  webClientId: WEB_CLIENT_ID,
+});
+
 /**
- * Intercambia el idToken de Google (obtenido con expo-auth-session) por una sesión
- * Firebase nativa (@react-native-firebase).
+ * Inicia sesión con Google usando el SDK nativo (@react-native-google-signin) y
+ * canjea el idToken por una sesión Firebase nativa. Sin navegador ni custom URI scheme.
  */
-export async function signInWithGoogle(idToken: string): Promise<FirebaseAuthTypes.User> {
+export async function signInWithGoogle(): Promise<FirebaseAuthTypes.User> {
+  await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+  const response = await GoogleSignin.signIn();
+  if (!isSuccessResponse(response)) {
+    throw new Error('google-sign-in-cancelled'); // el usuario cerró el diálogo
+  }
+  const idToken = response.data.idToken;
+  if (!idToken) throw new Error('No se recibió idToken de Google.');
   const credential = GoogleAuthProvider.credential(idToken);
   const { user } = await signInWithCredential(auth, credential);
   return user;

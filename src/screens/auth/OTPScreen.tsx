@@ -44,7 +44,7 @@ export default function OTPScreen({ route, navigation }: OTPScreenProps) {
       // p.ej. auth/invalid-phone-number, auth/app-not-authorized (falta SHA-1),
       // auth/missing-client-identifier, o "native module" si se corre en Expo Go.
       const err = e as { code?: string; message?: string };
-      console.warn('[OTP] signInWithPhone falló →', err?.code, err?.message);
+      if (__DEV__) console.warn('[OTP] signInWithPhone falló →', err?.code, err?.message);
       Alert.alert(
         'No se pudo enviar el código',
         err?.code ? `${err.code}\n${err.message ?? ''}` : 'Verifica el número e inténtalo de nuevo.',
