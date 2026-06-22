@@ -183,11 +183,11 @@ curl -X POST https://<proyecto>.railway.app/api/v1/conductor/crear \
 
 ## 10. Riesgos pendientes
 
-1. 🔴 **AWS secret key con prefijo `EXPO_PUBLIC_` en `.env` (trackeado en git).**
-   - `EXPO_PUBLIC_` → se empaqueta en el bundle y viaja a cada dispositivo (extraíble).
-   - `.env` trackeado → queda en el historial del repo.
-   - **Mitigación:** rotar las llaves AWS, mover la subida a **presigned URLs firmadas por el
-     backend**, eliminar las llaves del cliente. *(Fuera del alcance de este checkpoint.)*
+1. ✅ **AWS S3 removido → OCR nativo en dispositivo (mitigado).**
+   - Enfoque histórico: subir fotos a S3 vía presigned URLs.
+   - Enfoque actual: procesar OCR on-device con ML Kit (seguro, sin upload).
+   - Estado: AWS completamente removido del código y configuración.
+   - No hay credenciales AWS en el proyecto.
 2. 🟡 **Warnings de `getIdToken` (API namespaced de `@react-native-firebase`).** Solo
    deprecación; **no** son llamadas excesivas (el token se cachea). Migrar a API modular en
    un PR aislado, sin tocar el flujo de auth validado.

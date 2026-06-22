@@ -1,44 +1,81 @@
 # Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 
-# dependencies
+# ==========================
+# Dependencies
+# ==========================
 node_modules/
 
+# ==========================
 # Expo
+# ==========================
 .expo/
 dist/
 web-build/
 expo-env.d.ts
 
+# ==========================
 # Native
+# ==========================
 .kotlin/
 *.orig.*
 *.jks
+*.keystore
 *.p8
 *.p12
 *.key
 *.mobileprovision
 
+# Generated native folders
+/android
+/ios
+
+# ==========================
 # Metro
+# ==========================
 .metro-health-check*
 
-# debug
+# ==========================
+# Logs
+# ==========================
 npm-debug.*
 yarn-debug.*
 yarn-error.*
+*.log
 
+# ==========================
 # macOS
+# ==========================
 .DS_Store
+
+# ==========================
+# Certificates & Keys
+# ==========================
 *.pem
 
-# local env files
-.env*.local
+# ==========================
+# Environment Variables
+# ==========================
+.env
+.env.*
+!.env.example
 
-# OAuth client secrets descargados de Google Cloud (jamás commitear)
+# ==========================
+# Firebase
+# ==========================
+
+# Firebase Admin SDK (NUNCA)
+service-account.json
+firebase-admin.json
+
+# Si manejas otras credenciales
+firebase-service-account.json
+
+# ==========================
+# Google OAuth
+# ==========================
 client_secret_*.json
 
-# typescript
+# ==========================
+# TypeScript
+# ==========================
 *.tsbuildinfo
-
-# generated native folders
-/ios
-/android
