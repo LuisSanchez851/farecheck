@@ -49,3 +49,4 @@ export type BalanceScreenProps = NativeStackScreenProps<BalanceStackParamList, '
 export type ProfileScreenProps         = NativeStackScreenProps<ProfileStackParamList, 'Profile'>;
 export type ConfigUmbralesScreenProps  = NativeStackScreenProps<ProfileStackParamList, 'ConfigUmbrales'>;
 export type DatosPersonalesScreenProps = NativeStackScreenProps<ProfileStackParamList, 'DatosPersonales'>;
+export type ContactosScreenProps       = NativeStackScreenProps<ProfileStackParamList, 'Contactos'>;

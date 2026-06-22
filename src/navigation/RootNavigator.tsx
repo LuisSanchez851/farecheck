@@ -19,6 +19,7 @@ import BalanceScreen      from '../screens/balance/BalanceScreen';
 import ProfileScreen      from '../screens/profile/ProfileScreen';
 import ConfigUmbralesScreen  from '../screens/profile/ConfigUmbralesScreen';
 import DatosPersonalesScreen from '../screens/profile/DatosPersonalesScreen';
+import ContactosScreen       from '../screens/profile/ContactosScreen';
 
 import type {
   AuthStackParamList,
@@ -61,7 +62,7 @@ function ProfileStackNavigator() {
       <ProfileStack.Screen name="Profile"         component={ProfileScreen} />
       <ProfileStack.Screen name="ConfigUmbrales"  component={ConfigUmbralesScreen} />
       <ProfileStack.Screen name="DatosPersonales" component={DatosPersonalesScreen} />
-      {/* S4-07: Contactos */}
+      <ProfileStack.Screen name="Contactos"       component={ContactosScreen} />
     </ProfileStack.Navigator>
   );
 }
